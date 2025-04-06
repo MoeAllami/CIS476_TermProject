@@ -1,0 +1,14 @@
+// Collection: messageThreads
+{
+  _id: ObjectId,
+  participants: [ObjectId], // Array of user IDs involved in the conversation
+  lastMessageAt: Date,
+  bookingId: ObjectId, // Optional reference to a booking if thread is related to a booking
+  carId: ObjectId, // Optional reference to the car being discussed
+  createdAt: Date,
+  updatedAt: Date
+}
+
+// Create indexes for faster thread queries
+// db.messageThreads.createIndex({ participants: 1 })
+// db.messageThreads.createIndex({ lastMessageAt: -1 })

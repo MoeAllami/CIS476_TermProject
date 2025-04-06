@@ -1,0 +1,19 @@
+// Collection: payments
+{
+  _id: ObjectId,
+  bookingId: ObjectId, // Reference to bookings collection
+  payerId: ObjectId, // User who pays (renter)
+  receiverId: ObjectId, // User who receives (car owner)
+  amount: Number,
+  fee: Number, // Platform fee
+  status: String, // "pending", "completed", "failed", "refunded"
+  paymentMethod: String, // For demonstration purposes
+  transactionId: String, // External transaction ID from payment provider
+  createdAt: Date,
+  updatedAt: Date
+}
+
+// Create index for faster payment queries
+// db.payments.createIndex({ bookingId: 1 })
+// db.payments.createIndex({ payerId: 1 })
+// db.payments.createIndex({ receiverId: 1 })

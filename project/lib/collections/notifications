@@ -1,0 +1,16 @@
+// Collection: notifications
+{
+  _id: ObjectId,
+  userId: ObjectId, // Reference to users collection (recipient)
+  type: String, // "booking_request", "booking_confirmation", "message", "payment", etc.
+  title: String,
+  message: String,
+  referenceId: ObjectId, // ID of the related object (booking, message, etc.)
+  referenceType: String, // "booking", "message", "payment", etc.
+  isRead: Boolean,
+  createdAt: Date
+}
+
+// Create indexes for faster notification queries
+// db.notifications.createIndex({ userId: 1, isRead: 1 })
+// db.notifications.createIndex({ userId: 1, createdAt: -1 })

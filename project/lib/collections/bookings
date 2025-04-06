@@ -1,0 +1,20 @@
+// Collection: bookings
+{
+  _id: ObjectId,
+  carId: ObjectId, // Reference to cars collection
+  ownerId: ObjectId, // Car owner (reference to users collection)
+  renterId: ObjectId, // Person renting the car (reference to users collection)
+  startDate: Date,
+  endDate: Date,
+  status: String, // "pending", "confirmed", "cancelled", "completed"
+  totalCost: Number,
+  paymentStatus: String, // "pending", "paid", "refunded"
+  pickupLocation: String,
+  returnLocation: String,
+  messageThreadId: ObjectId, // Reference to the associated message thread
+  createdAt: Date,
+  updatedAt: Date
+}
+
+// Create compound index on carId and date range for checking availability
+// db.bookings.createIndex({ carId: 1, startDate: 1, endDate: 1 })

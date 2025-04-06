@@ -1,0 +1,15 @@
+// Collection: reviews
+{
+  _id: ObjectId,
+  carId: ObjectId, // Reference to cars collection
+  bookingId: ObjectId, // Reference to bookings collection
+  reviewerId: ObjectId, // User who wrote the review
+  rating: Number, // 1-5 stars
+  comment: String,
+  createdAt: Date,
+  updatedAt: Date
+}
+
+// Create indexes for faster review queries
+// db.reviews.createIndex({ carId: 1 })
+// db.reviews.createIndex({ reviewerId: 1 })

@@ -1,0 +1,49 @@
+// Collection: cars
+{
+  _id: ObjectId,
+  ownerId: ObjectId, // Reference to users collection
+  make: String,
+  model: String,
+  year: Number,
+  type: String, // SUV, Sedan, etc.
+  color: String,
+  licensePlate: String,
+  mileage: Number,
+  features: [String], // Array of features like "AC", "Bluetooth", etc.
+  images: [String], // Array of image URLs
+  availability: {
+    isAvailable: Boolean,
+    unavailableDates: [Date] // Dates when the car is already booked
+  },
+  location: {
+    address: String,
+    city: String,
+    state: String,
+    zipCode: String,
+    coordinates: {
+      type: "Point",
+      coordinates: [Number, Number] // [longitude, latitude]
+    }
+  },
+  pricing: {
+    daily: Number,
+    weekly: Number,
+    monthly: Number,
+    deposit: Number
+  },
+  rules: {
+    smoking: Boolean,
+    pets: Boolean,
+    minimumAge: Number,
+    additionalRules: [String]
+  },
+  ratings: {
+    average: Number,
+    count: Number
+  },
+  createdAt: Date,
+  updatedAt: Date
+}
+
+// Create a geospatial index for location-based searches
+// db.cars.createIndex({ "location.coordinates": "2dsphere" })

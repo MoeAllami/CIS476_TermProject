@@ -1,0 +1,15 @@
+// Collection: messages
+{
+  _id: ObjectId,
+  threadId: ObjectId, // To group messages in a conversation
+  senderId: ObjectId, // Reference to users collection
+  receiverId: ObjectId, // Reference to users collection
+  content: String,
+  isRead: Boolean,
+  bookingId: ObjectId, // Optional reference to a booking if message is related to a booking
+  createdAt: Date
+}
+
+// Create indexes for faster message queries
+// db.messages.createIndex({ threadId: 1, createdAt: 1 })
+// db.messages.createIndex({ senderId: 1, receiverId: 1 })

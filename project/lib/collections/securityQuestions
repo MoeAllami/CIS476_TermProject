@@ -1,0 +1,7 @@
+// Collection: securityQuestions
+{
+  _id: ObjectId,
+  question: String, // The security question text
+  isActive: Boolean, // Whether this question is available for use
+  createdAt: Date
+}
