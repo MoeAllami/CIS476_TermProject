@@ -1,11 +1,11 @@
-// components/HomeSearch.jsx
 "use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import { FaSearch, FaMapMarkerAlt, FaCalendarAlt } from "react-icons/fa";
 
-// Date picker components - you can install react-datepicker for this
+// Date picker components
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
@@ -14,16 +14,37 @@ export default function HomeSearch() {
   const [location, setLocation] = useState("");
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
+  const [error, setError] = useState("");
 
   const handleSearch = (e) => {
     e.preventDefault();
+    setError("");
+
+    // Basic validation
+    if (!location) {
+      setError("Please enter a location");
+      return;
+    }
+
+    if (!startDate || !endDate) {
+      setError("Please select both start and end dates");
+      return;
+    }
 
     const searchParams = new URLSearchParams();
-    if (location) searchParams.set("location", location);
-    if (startDate) searchParams.set("startDate", startDate.toISOString());
-    if (endDate) searchParams.set("endDate", endDate.toISOString());
+    searchParams.set("location", location);
+    searchParams.set("startDate", startDate.toISOString());
+    searchParams.set("endDate", endDate.toISOString());
 
     router.push(`/dashboard/cars?${searchParams.toString()}`);
+  };
+
+  // Handle date changes and validate
+  const handleStartDateChange = (date) => {
+    setStartDate(date);
+    if (endDate && date > endDate) {
+      setEndDate(null);
+    }
   };
 
   return (
@@ -37,18 +58,20 @@ export default function HomeSearch() {
         <div className="flex-1 p-3 border-b md:border-b-0 md:border-r border-gray-700">
           <label
             htmlFor="location"
-            className="block text-xs text-gray-400 mb-1 text-center"
+            className="block text-xs text-gray-400 mb-1 text-left md:text-center"
           >
             Location
           </label>
           <div className="flex items-center">
+            <FaMapMarkerAlt className="text-gray-400 mr-2" />
             <input
               id="location"
               type="text"
               placeholder="Where do you need a car?"
-              className="w-full outline-none text-white bg-transparent text-center"
+              className="w-full outline-none text-white bg-transparent"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
+              aria-required="true"
             />
           </div>
         </div>
@@ -56,22 +79,25 @@ export default function HomeSearch() {
         <div className="flex-1 p-3 border-b md:border-b-0 md:border-r border-gray-700">
           <label
             htmlFor="startDate"
-            className="block text-xs text-gray-400 mb-1 text-center"
+            className="block text-xs text-gray-400 mb-1 text-left md:text-center"
           >
             Start Date
           </label>
-          <div className="flex items-center justify-center">
+          <div className="flex items-center">
+            <FaCalendarAlt className="text-gray-400 mr-2" />
             <DatePicker
               id="startDate"
               selected={startDate}
-              onChange={(date) => setStartDate(date)}
+              onChange={handleStartDateChange}
               selectsStart
               startDate={startDate}
               endDate={endDate}
               minDate={new Date()}
               placeholderText="Pick-up date"
-              className="w-full outline-none text-white bg-transparent text-center"
+              className="w-full outline-none text-white bg-transparent"
               calendarClassName="bg-gray-800 text-white border border-gray-700"
+              dateFormat="MMM d, yyyy"
+              aria-required="true"
             />
           </div>
         </div>
@@ -79,11 +105,12 @@ export default function HomeSearch() {
         <div className="flex-1 p-3">
           <label
             htmlFor="endDate"
-            className="block text-xs text-gray-400 mb-1 text-center"
+            className="block text-xs text-gray-400 mb-1 text-left md:text-center"
           >
             End Date
           </label>
-          <div className="flex items-center justify-center">
+          <div className="flex items-center">
+            <FaCalendarAlt className="text-gray-400 mr-2" />
             <DatePicker
               id="endDate"
               selected={endDate}
@@ -93,8 +120,10 @@ export default function HomeSearch() {
               endDate={endDate}
               minDate={startDate || new Date()}
               placeholderText="Return date"
-              className="w-full outline-none text-white bg-transparent text-center"
+              className="w-full outline-none text-white bg-transparent"
               calendarClassName="bg-gray-800 text-white border border-gray-700"
+              dateFormat="MMM d, yyyy"
+              aria-required="true"
             />
           </div>
         </div>
@@ -102,10 +131,16 @@ export default function HomeSearch() {
         <button
           type="submit"
           className="m-3 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition flex items-center justify-center"
+          aria-label="Search for cars"
         >
+          <FaSearch className="mr-2" />
           <span>Search</span>
         </button>
       </form>
+
+      {error && (
+        <div className="text-red-400 text-sm p-2 text-center">{error}</div>
+      )}
     </motion.div>
   );
 }

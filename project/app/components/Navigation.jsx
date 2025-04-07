@@ -1,20 +1,37 @@
-// components/Navigation.jsx
 "use client";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+  FaHome,
+  FaCar,
+  FaBookmark,
+  FaEnvelope,
+  FaUser,
+  FaBars,
+  FaTimes,
+} from "react-icons/fa";
 
 export default function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const pathname = usePathname();
 
   // Check if user is logged in on component mount
   useEffect(() => {
     // For demo purposes, we'll just set a dummy value
+    // In a real app, you would check authentication status here
     setIsLoggedIn(false);
+
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 50);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const toggleMenu = () => {
@@ -61,40 +78,31 @@ export default function Navigation() {
 
   return (
     <>
-      {/* Mobile Menu Button */}
-      <div className="lg:hidden fixed top-4 left-4 z-50">
-        <button
-          onClick={toggleMenu}
-          className="p-2 rounded-full bg-gray-800 text-white hover:bg-gray-700 transition"
-          aria-label="Toggle menu"
-        >
-          {isOpen ? (
-            <span className="text-xl">✕</span>
-          ) : (
-            <span className="text-xl">☰</span>
-          )}
-        </button>
-      </div>
-
       {/* Desktop Sidebar */}
       <div className="hidden lg:block w-64 bg-gray-900 bg-opacity-90 backdrop-blur-md h-screen fixed left-0 top-0 z-40 border-r border-gray-800">
         <div className="h-full flex flex-col justify-between p-6">
           <div>
             <Link href="/" className="block mb-10 text-center">
-              <h1 className="text-2xl font-bold text-white">DriveShare</h1>
+              <div className="flex items-center justify-center">
+                <div className="w-10 h-10 bg-blue-600 rounded-md flex items-center justify-center mr-2">
+                  <span className="text-white font-bold">D</span>
+                </div>
+                <h1 className="text-2xl font-bold text-white">DriveShare</h1>
+              </div>
             </Link>
             <nav>
               <ul className="space-y-4">
                 {linkItems.map((item) => (
-                  <li key={item.href} className="text-center">
+                  <li key={item.href}>
                     <Link
                       href={item.href}
-                      className={`block px-4 py-2 rounded-lg transition-colors ${
+                      className={`flex items-center px-4 py-2 rounded-lg transition-colors ${
                         pathname === item.href
                           ? "bg-blue-600 text-white"
                           : "text-white hover:bg-gray-800"
                       }`}
                     >
+                      {item.icon}
                       {item.label}
                     </Link>
                   </li>
@@ -106,10 +114,10 @@ export default function Navigation() {
           <div>
             <ul className="space-y-4">
               {authItems.map((item) => (
-                <li key={item.href} className="text-center">
+                <li key={item.href}>
                   <Link
                     href={item.href}
-                    className={`block px-4 py-2 rounded-lg transition-colors ${
+                    className={`flex items-center px-4 py-2 rounded-lg transition-colors ${
                       item.variant === "filled"
                         ? "bg-blue-600 text-white hover:bg-blue-700"
                         : pathname === item.href
@@ -117,6 +125,7 @@ export default function Navigation() {
                         : "text-white hover:bg-gray-800"
                     }`}
                   >
+                    {item.icon && item.icon}
                     {item.label}
                   </Link>
                 </li>
@@ -143,21 +152,29 @@ export default function Navigation() {
                   className="block mb-10 text-center"
                   onClick={() => setIsOpen(false)}
                 >
-                  <h1 className="text-2xl font-bold text-white">DriveShare</h1>
+                  <div className="flex items-center justify-center">
+                    <div className="w-10 h-10 bg-blue-600 rounded-md flex items-center justify-center mr-2">
+                      <span className="text-white font-bold">D</span>
+                    </div>
+                    <h1 className="text-2xl font-bold text-white">
+                      DriveShare
+                    </h1>
+                  </div>
                 </Link>
                 <nav>
                   <ul className="space-y-4">
                     {linkItems.map((item) => (
-                      <li key={item.href} className="text-center">
+                      <li key={item.href}>
                         <Link
                           href={item.href}
-                          className={`block px-4 py-2 rounded-lg transition-colors ${
+                          className={`flex items-center px-4 py-2 rounded-lg transition-colors ${
                             pathname === item.href
                               ? "bg-blue-600 text-white"
                               : "text-white hover:bg-gray-800"
                           }`}
                           onClick={() => setIsOpen(false)}
                         >
+                          {item.icon}
                           {item.label}
                         </Link>
                       </li>
@@ -169,10 +186,10 @@ export default function Navigation() {
               <div>
                 <ul className="space-y-4">
                   {authItems.map((item) => (
-                    <li key={item.href} className="text-center">
+                    <li key={item.href}>
                       <Link
                         href={item.href}
-                        className={`block px-4 py-2 rounded-lg transition-colors ${
+                        className={`flex items-center px-4 py-2 rounded-lg transition-colors ${
                           item.variant === "filled"
                             ? "bg-blue-600 text-white hover:bg-blue-700"
                             : pathname === item.href
@@ -181,6 +198,7 @@ export default function Navigation() {
                         }`}
                         onClick={() => setIsOpen(false)}
                       >
+                        {item.icon && item.icon}
                         {item.label}
                       </Link>
                     </li>
@@ -189,20 +207,6 @@ export default function Navigation() {
               </div>
             </div>
           </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Overlay when mobile menu is open */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
-            onClick={() => setIsOpen(false)}
-          />
         )}
       </AnimatePresence>
     </>
