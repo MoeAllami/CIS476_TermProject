@@ -1,4 +1,5 @@
 // lib/models/user.js
+import { ObjectId } from "mongodb";
 export const UserCollection = "users";
 
 export const getUserById = async (db, userId) => {

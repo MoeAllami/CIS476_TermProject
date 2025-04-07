@@ -1,4 +1,5 @@
 // lib/models/car.js
+import { ObjectId } from "mongodb";
 export const CarCollection = "cars";
 
 export const getCarById = async (db, carId) => {
