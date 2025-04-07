@@ -2,10 +2,6 @@
 import { ObjectId } from "mongodb";
 import { CarCollection } from "../models/car";
 
-export const getCarById = async (db, carId) => {
-  return db.collection(CarCollection).findOne({ _id: new ObjectId(carId) });
-};
-
 export const getCarsByOwner = async (db, ownerId) => {
   return db
     .collection(CarCollection)
@@ -97,4 +93,100 @@ export const updateCarAvailability = async (
     }
   );
   return result.modifiedCount > 0;
+};
+
+export const searchCars = async (db, searchParams) => {
+  const {
+    location,
+    startDate,
+    endDate,
+    priceMin,
+    priceMax,
+    make,
+    model,
+    year,
+    limit = 20,
+    skip = 0,
+  } = searchParams;
+
+  // Build query based on provided parameters
+  const query = {};
+
+  // Filter by location if provided (using geo search)
+  if (location && location.coordinates) {
+    const [longitude, latitude] = location.coordinates;
+    const maxDistance = location.radius || 50000; // Default 50km radius
+
+    query["location.coordinates"] = {
+      $near: {
+        $geometry: {
+          type: "Point",
+          coordinates: [longitude, latitude],
+        },
+        $maxDistance: maxDistance,
+      },
+    };
+  }
+
+  // Filter by price range
+  if (priceMin !== undefined || priceMax !== undefined) {
+    query.pricePerDay = {};
+    if (priceMin !== undefined) query.pricePerDay.$gte = priceMin;
+    if (priceMax !== undefined) query.pricePerDay.$lte = priceMax;
+  }
+
+  // Filter by car details
+  if (make) query.make = make;
+  if (model) query.model = model;
+  if (year) query.year = year;
+
+  // Execute the query
+  const cars = await db
+    .collection(CarCollection)
+    .find(query)
+    .skip(skip)
+    .limit(limit)
+    .toArray();
+
+  // Get total count for pagination
+  const total = await db.collection(CarCollection).countDocuments(query);
+
+  // If dates provided, filter out cars that aren't available
+  if (startDate && endDate) {
+    const startDateObj = new Date(startDate);
+    const endDateObj = new Date(endDate);
+
+    // Get bookings that overlap with requested dates
+    const bookings = await db
+      .collection("bookings")
+      .find({
+        status: { $in: ["confirmed", "pending"] },
+        $or: [
+          {
+            startDate: { $lte: endDateObj },
+            endDate: { $gte: startDateObj },
+          },
+        ],
+      })
+      .toArray();
+
+    // Create a Set of booked car IDs
+    const bookedCarIds = new Set(bookings.map((b) => b.carId.toString()));
+
+    // Filter out booked cars
+    const availableCars = cars.filter(
+      (car) => !bookedCarIds.has(car._id.toString())
+    );
+
+    return {
+      cars: availableCars,
+      total: availableCars.length,
+    };
+  }
+
+  return { cars, total };
+};
+
+export const getCarById = async (db, carId) => {
+  return db.collection(CarCollection).findOne({ _id: new ObjectId(carId) });
 };
