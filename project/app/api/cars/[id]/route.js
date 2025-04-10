@@ -35,11 +35,15 @@ export async function GET(request, { params }) {
   }
 }
 
-// Update a car
+// app/api/cars/[id]/route.js
+// Focus on the PUT method - I'm only showing the part that needs changes
+
 export async function PUT(request, { params }) {
   try {
-    const id = (await params).id;
-    const session = await getServerSession();
+    const id = (await params).id; // Simplified - no need for await here
+
+    // Pass authOptions to getServerSession just like in your DELETE method
+    const session = await getServerSession(authOptions);
 
     if (!session) {
       return NextResponse.json(
@@ -51,8 +55,10 @@ export async function PUT(request, { params }) {
     const client = await clientPromise;
     const db = client.db("driveshare");
 
-    // Get the existing car to ensure owner is updating
-    const existingCar = await getCarById(db, id);
+    // Get the existing car directly from the database
+    const existingCar = await db.collection("cars").findOne({
+      _id: new ObjectId(id),
+    });
 
     if (!existingCar) {
       return NextResponse.json(
@@ -61,7 +67,10 @@ export async function PUT(request, { params }) {
       );
     }
 
-    // Check if user is the owner
+    console.log("Session user ID:", session.user.id);
+    console.log("Car owner ID:", existingCar.ownerId.toString());
+
+    // Check if user is the owner - make sure the ID comparison works correctly
     if (existingCar.ownerId.toString() !== session.user.id) {
       return NextResponse.json(
         { success: false, message: "Not authorized to update this car" },
@@ -71,76 +80,46 @@ export async function PUT(request, { params }) {
 
     const data = await request.json();
 
-    // Use the Builder pattern to update car
-    const carBuilder = new CarBuilder().setOwner(session.user.id);
-
-    // Only update fields that are provided
-    if (data.make && data.model) carBuilder.setMakeModel(data.make, data.model);
-    if (data.year) carBuilder.setYear(data.year);
-    if (data.type || data.color || data.licensePlate || data.mileage) {
-      carBuilder.setDetails(
-        data.type || existingCar.type,
-        data.color || existingCar.color,
-        data.licensePlate || existingCar.licensePlate,
-        data.mileage || existingCar.mileage
-      );
-    }
-    if (data.features) carBuilder.setFeatures(data.features);
-    if (data.images) carBuilder.setImages(data.images);
-    if (data.location) {
-      carBuilder.setLocation(
-        data.location.address || existingCar.location.address,
-        data.location.city || existingCar.location.city,
-        data.location.state || existingCar.location.state,
-        data.location.zipCode || existingCar.location.zipCode,
-        data.location.longitude ||
-          existingCar.location.coordinates.coordinates[0],
-        data.location.latitude ||
-          existingCar.location.coordinates.coordinates[1]
-      );
-    }
-    if (data.pricing) {
-      carBuilder.setPricing(
-        data.pricing.daily || existingCar.pricing.daily,
-        data.pricing.weekly || existingCar.pricing.weekly,
-        data.pricing.monthly || existingCar.pricing.monthly,
-        data.pricing.deposit || existingCar.pricing.deposit
-      );
-    }
-    if (data.rules) {
-      carBuilder.setRules(
-        data.rules.smoking !== undefined
-          ? data.rules.smoking
-          : existingCar.rules.smoking,
-        data.rules.pets !== undefined
-          ? data.rules.pets
-          : existingCar.rules.pets,
-        data.rules.minimumAge || existingCar.rules.minimumAge,
-        data.rules.additionalRules || existingCar.rules.additionalRules
-      );
-    }
-    if (data.availability !== undefined) {
-      carBuilder.setAvailability(
-        data.availability.isAvailable !== undefined
-          ? data.availability.isAvailable
-          : existingCar.availability.isAvailable,
-        data.availability.unavailableDates ||
-          existingCar.availability.unavailableDates
-      );
-    }
-
-    // Build the updated car data
-    const updatedCarData = carBuilder.build();
-
-    // Remove the owner ID and ratings from update (these shouldn't be modified)
-    delete updatedCarData.ownerId;
-    delete updatedCarData.ratings;
-    delete updatedCarData.createdAt;
+    // Instead of using the builder pattern with selective updates,
+    // create a direct update object that matches your form data structure
+    const updatedCarData = {
+      make: data.make,
+      model: data.model,
+      year: parseInt(data.year, 10),
+      type: data.type,
+      color: data.color,
+      licensePlate: data.licensePlate,
+      mileage: parseInt(data.mileage, 10),
+      features: data.features || [],
+      photos: data.photos || existingCar.photos || [],
+      description: data.description,
+      pricing: {
+        daily: parseFloat(data.pricePerDay),
+        // Preserve other pricing fields
+        weekly: existingCar.pricing?.weekly,
+        monthly: existingCar.pricing?.monthly,
+        deposit: existingCar.pricing?.deposit,
+      },
+      location: {
+        address: data.location.address,
+        city: data.location.city,
+        state: data.location.state,
+        zipCode: data.location.zipCode,
+        coordinates: data.location.coordinates || [0, 0],
+      },
+      availability: {
+        isAvailable: data.availability.defaultAvailable,
+        exceptions: existingCar.availability?.exceptions || [],
+      },
+      updatedAt: new Date(),
+    };
 
     // Update in database
-    const success = await updateCar(db, id, updatedCarData);
+    const result = await db
+      .collection("cars")
+      .updateOne({ _id: new ObjectId(id) }, { $set: updatedCarData });
 
-    if (!success) {
+    if (result.matchedCount === 0) {
       return NextResponse.json(
         { success: false, message: "Failed to update car" },
         { status: 500 }

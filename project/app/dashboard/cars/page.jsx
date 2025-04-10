@@ -241,6 +241,13 @@ function CarDashboardPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                      <Link
+                        href={`/dashboard/cars/edit/${car._id}`}
+                        className="px-3 py-1 bg-blue-100 text-blue-800 rounded-md hover:bg-blue-200"
+                      >
+                        Edit
+                      </Link>
+
                       <button
                         onClick={() =>
                           handleToggleAvailability(
