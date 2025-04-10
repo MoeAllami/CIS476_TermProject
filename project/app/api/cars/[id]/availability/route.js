@@ -1,111 +1,82 @@
 // app/api/cars/[id]/availability/route.js
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth/auth";
 import clientPromise from "@/lib/mongodb/mongodb";
-import {
-  getCarById,
-  updateCarAvailability,
-  checkCarAvailability,
-} from "@/lib/services/carService";
+import { ObjectId } from "mongodb";
 
-// Update car availability
-export async function PUT(request, { params }) {
+export async function PUT(request, context) {
   try {
-    const { id } = params;
-    const session = await getServerSession();
+    // Get the ID from the URL params using the context object
+    const id = context.params?.id;
+
+    if (!id) {
+      return NextResponse.json(
+        { message: "Car ID is required" },
+        { status: 400 }
+      );
+    }
+
+    // Get the request body
+    const { isAvailable } = await request.json();
+
+    // Get session
+    const session = await getServerSession(authOptions);
 
     if (!session) {
       return NextResponse.json(
-        { success: false, message: "Unauthorized" },
+        { message: "Not authenticated" },
         { status: 401 }
       );
     }
 
+    // Connect to MongoDB
     const client = await clientPromise;
     const db = client.db("driveshare");
 
-    // Get the existing car to ensure owner is updating
-    const existingCar = await getCarById(db, id);
+    // Get the car to check ownership
+    const car = await db.collection("cars").findOne({
+      _id: new ObjectId(id),
+    });
 
-    if (!existingCar) {
-      return NextResponse.json(
-        { success: false, message: "Car not found" },
-        { status: 404 }
-      );
+    if (!car) {
+      return NextResponse.json({ message: "Car not found" }, { status: 404 });
     }
 
-    // Check if user is the owner
-    if (existingCar.ownerId.toString() !== session.user.id) {
+    // Verify the user owns this car
+    if (car.ownerId.toString() !== session.user.id) {
       return NextResponse.json(
-        { success: false, message: "Not authorized to update this car" },
+        { message: "Unauthorized: You do not own this car" },
         { status: 403 }
       );
     }
 
-    const { isAvailable, unavailableDates } = await request.json();
-
-    const success = await updateCarAvailability(
-      db,
-      id,
-      session.user.id,
-      isAvailable,
-      unavailableDates || []
+    // Update the car availability
+    const result = await db.collection("cars").updateOne(
+      { _id: new ObjectId(id) },
+      {
+        $set: {
+          "availability.isAvailable": isAvailable,
+          updatedAt: new Date(),
+        },
+      }
     );
 
-    if (!success) {
+    if (result.modifiedCount === 0) {
       return NextResponse.json(
-        { success: false, message: "Failed to update availability" },
+        { message: "Failed to update car availability" },
         { status: 500 }
       );
     }
 
     return NextResponse.json({
-      success: true,
-      message: "Availability updated successfully",
-    });
-  } catch (error) {
-    console.error("Error updating availability:", error);
-    return NextResponse.json(
-      { success: false, message: "Failed to update availability" },
-      { status: 500 }
-    );
-  }
-}
-
-// Check car availability for specific dates
-export async function POST(request, { params }) {
-  try {
-    const { id } = params;
-    const { startDate, endDate } = await request.json();
-
-    if (!startDate || !endDate) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Start date and end date are required",
-        },
-        { status: 400 }
-      );
-    }
-
-    const client = await clientPromise;
-    const db = client.db("driveshare");
-
-    const isAvailable = await checkCarAvailability(
-      db,
-      id,
-      new Date(startDate),
-      new Date(endDate)
-    );
-
-    return NextResponse.json({
-      success: true,
+      message: "Car availability updated successfully",
       isAvailable,
     });
   } catch (error) {
-    console.error("Error checking availability:", error);
+    console.error("Error updating car availability:", error);
     return NextResponse.json(
-      { success: false, message: "Failed to check availability" },
+      { message: "Internal server error: " + error.message },
       { status: 500 }
     );
   }

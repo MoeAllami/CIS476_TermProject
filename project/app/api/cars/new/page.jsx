@@ -1,8 +1,9 @@
 // app/cars/new/page.jsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 const carTypes = [
   "Sedan",
@@ -34,8 +35,16 @@ const featureOptions = [
 
 function NewCarPage() {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Redirect if not logged in
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/auth/signin?callbackUrl=/cars/new");
+    }
+  }, [status, router]);
 
   const [formData, setFormData] = useState({
     make: "",
@@ -46,28 +55,20 @@ function NewCarPage() {
     licensePlate: "",
     mileage: "",
     features: [],
-    images: [],
+    photos: [],
     location: {
       address: "",
       city: "",
       state: "",
       zipCode: "",
-      longitude: "",
-      latitude: "",
+      coordinates: [0, 0], // [longitude, latitude]
     },
-    pricing: {
-      daily: "",
-      weekly: "",
-      monthly: "",
-      deposit: "",
+    pricePerDay: "",
+    description: "",
+    availability: {
+      defaultAvailable: true,
+      exceptions: [],
     },
-    rules: {
-      smoking: false,
-      pets: false,
-      minimumAge: "21",
-      additionalRules: [],
-    },
-    unavailableDates: [],
   });
 
   const handleChange = (e) => {
@@ -101,17 +102,19 @@ function NewCarPage() {
     });
   };
 
-  const handleAdditionalRules = (e) => {
-    const rules = e.target.value
-      .split("\n")
-      .filter((rule) => rule.trim() !== "");
-    setFormData((prev) => ({
-      ...prev,
-      rules: {
-        ...prev.rules,
-        additionalRules: rules,
-      },
-    }));
+  const handleCoordinatesChange = (e, index) => {
+    const newValue = parseFloat(e.target.value) || 0;
+    setFormData((prev) => {
+      const newCoordinates = [...prev.location.coordinates];
+      newCoordinates[index] = newValue;
+      return {
+        ...prev,
+        location: {
+          ...prev.location,
+          coordinates: newCoordinates,
+        },
+      };
+    });
   };
 
   const handleImageUpload = (e) => {
@@ -124,7 +127,7 @@ function NewCarPage() {
 
     setFormData((prev) => ({
       ...prev,
-      images: [...prev.images, ...imageUrls],
+      photos: [...prev.photos, ...imageUrls],
     }));
   };
 
@@ -134,12 +137,27 @@ function NewCarPage() {
     setError("");
 
     try {
+      if (!session || !session.user) {
+        throw new Error("You must be logged in to add a car");
+      }
+
+      // Convert string values to numbers
+      const carData = {
+        ...formData,
+        year: parseInt(formData.year, 10),
+        mileage: parseInt(formData.mileage, 10),
+        pricePerDay: parseFloat(formData.pricePerDay),
+        ownerId: session.user.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
       const response = await fetch("/api/cars", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(carData),
       });
 
       const data = await response.json();
@@ -155,6 +173,28 @@ function NewCarPage() {
       setIsLoading(false);
     }
   };
+
+  if (status === "loading") {
+    return (
+      <div className="max-w-4xl mx-auto py-8 px-4">
+        <h1 className="text-3xl font-bold mb-8">Add New Car</h1>
+        <div className="text-center py-12">Verifying your account...</div>
+      </div>
+    );
+  }
+
+  if (status === "unauthenticated") {
+    return (
+      <div className="max-w-4xl mx-auto py-8 px-4">
+        <h1 className="text-3xl font-bold mb-8">Add New Car</h1>
+        <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-6">
+          <p className="text-sm text-red-700">
+            You must be logged in to add a car. Redirecting to login...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto py-8 px-4">
@@ -269,7 +309,36 @@ function NewCarPage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
               />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Daily Rate ($)
+              </label>
+              <input
+                type="number"
+                name="pricePerDay"
+                value={formData.pricePerDay}
+                onChange={handleChange}
+                required
+                min="0"
+                step="0.01"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              />
+            </div>
           </div>
+        </div>
+
+        {/* Description */}
+        <div className="bg-white p-6 rounded-lg shadow">
+          <h2 className="text-xl font-semibold mb-4">Description</h2>
+          <textarea
+            name="description"
+            value={formData.description}
+            onChange={handleChange}
+            rows="4"
+            required
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            placeholder="Tell renters about your car..."
+          ></textarea>
         </div>
 
         {/* Features */}
@@ -306,12 +375,12 @@ function NewCarPage() {
             onChange={handleImageUpload}
             className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
           />
-          {formData.images.length > 0 && (
+          {formData.photos.length > 0 && (
             <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-              {formData.images.map((image, index) => (
+              {formData.photos.map((photo, index) => (
                 <div key={index} className="relative">
                   <img
-                    src={image}
+                    src={photo}
                     alt="Car"
                     className="h-24 w-full object-cover rounded"
                   />
@@ -321,7 +390,7 @@ function NewCarPage() {
                     onClick={() => {
                       setFormData((prev) => ({
                         ...prev,
-                        images: prev.images.filter((_, i) => i !== index),
+                        photos: prev.photos.filter((_, i) => i !== index),
                       }));
                     }}
                   >
@@ -395,19 +464,19 @@ function NewCarPage() {
               </label>
               <div className="grid grid-cols-2 gap-4">
                 <input
-                  type="text"
-                  name="location.longitude"
-                  value={formData.location.longitude}
-                  onChange={handleChange}
+                  type="number"
+                  value={formData.location.coordinates[0]}
+                  onChange={(e) => handleCoordinatesChange(e, 0)}
                   placeholder="Longitude"
+                  step="any"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 />
                 <input
-                  type="text"
-                  name="location.latitude"
-                  value={formData.location.latitude}
-                  onChange={handleChange}
+                  type="number"
+                  value={formData.location.coordinates[1]}
+                  onChange={(e) => handleCoordinatesChange(e, 1)}
                   placeholder="Latitude"
+                  step="any"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 />
               </div>
@@ -415,130 +484,29 @@ function NewCarPage() {
           </div>
         </div>
 
-        {/* Pricing */}
+        {/* Availability */}
         <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">Pricing</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Daily Rate ($)
-              </label>
-              <input
-                type="number"
-                name="pricing.daily"
-                value={formData.pricing.daily}
-                onChange={handleChange}
-                required
-                min="0"
-                step="0.01"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Weekly Rate ($) (optional)
-              </label>
-              <input
-                type="number"
-                name="pricing.weekly"
-                value={formData.pricing.weekly}
-                onChange={handleChange}
-                min="0"
-                step="0.01"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                placeholder="Defaults to 10% off daily rate"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Monthly Rate ($) (optional)
-              </label>
-              <input
-                type="number"
-                name="pricing.monthly"
-                value={formData.pricing.monthly}
-                onChange={handleChange}
-                min="0"
-                step="0.01"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                placeholder="Defaults to 20% off daily rate"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Security Deposit ($) (optional)
-              </label>
-              <input
-                type="number"
-                name="pricing.deposit"
-                value={formData.pricing.deposit}
-                onChange={handleChange}
-                min="0"
-                step="0.01"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                placeholder="Defaults to 2 days of rental"
-              />
-            </div>
+          <h2 className="text-xl font-semibold mb-4">Availability</h2>
+          <div className="flex items-center mb-4">
+            <input
+              type="checkbox"
+              id="defaultAvailable"
+              name="availability.defaultAvailable"
+              checked={formData.availability.defaultAvailable}
+              onChange={handleChange}
+              className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+            />
+            <label
+              htmlFor="defaultAvailable"
+              className="ml-2 text-sm text-gray-700"
+            >
+              Car is available for rent by default
+            </label>
           </div>
-        </div>
-
-        {/* Rules */}
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">Rules</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="smoking"
-                name="rules.smoking"
-                checked={formData.rules.smoking}
-                onChange={handleChange}
-                className="h-4 w-4 text-blue-600 border-gray-300 rounded"
-              />
-              <label htmlFor="smoking" className="ml-2 text-sm text-gray-700">
-                Smoking allowed
-              </label>
-            </div>
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="pets"
-                name="rules.pets"
-                checked={formData.rules.pets}
-                onChange={handleChange}
-                className="h-4 w-4 text-blue-600 border-gray-300 rounded"
-              />
-              <label htmlFor="pets" className="ml-2 text-sm text-gray-700">
-                Pets allowed
-              </label>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Minimum Renter Age
-              </label>
-              <input
-                type="number"
-                name="rules.minimumAge"
-                value={formData.rules.minimumAge}
-                onChange={handleChange}
-                min="18"
-                max="99"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Additional Rules (one per line)
-              </label>
-              <textarea
-                value={formData.rules.additionalRules.join("\n")}
-                onChange={handleAdditionalRules}
-                rows="4"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                placeholder="E.g., No off-road driving&#10;Return with full tank&#10;No smoking"
-              ></textarea>
-            </div>
-          </div>
+          <p className="text-sm text-gray-500 mb-4">
+            You can manage specific availability dates after creating the
+            listing.
+          </p>
         </div>
 
         <div className="flex justify-end">
@@ -561,4 +529,5 @@ function NewCarPage() {
     </div>
   );
 }
+
 export default NewCarPage;

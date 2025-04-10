@@ -3,30 +3,33 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import clientPromise from "@/lib/mongodb/mongodb";
 import { getCarById, updateCar, deleteCar } from "@/lib/services/carService";
-import CarBuilder from "@/lib/builders/CarBuilder";
+import CarBuilder from "@/lib/patterns/CarBuilder";
+import { authOptions } from "@/lib/auth/auth";
+import { ObjectId } from "mongodb";
 
-// Get a single car by ID
+// GET a single car by ID
 export async function GET(request, { params }) {
   try {
-    const { id } = params;
+    const id = (await params).id;
 
+    // Connect to MongoDB
     const client = await clientPromise;
     const db = client.db("driveshare");
 
-    const car = await getCarById(db, id);
+    // Get the car
+    const car = await db.collection("cars").findOne({
+      _id: new ObjectId(id),
+    });
 
     if (!car) {
-      return NextResponse.json(
-        { success: false, message: "Car not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ message: "Car not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, car });
+    return NextResponse.json({ car });
   } catch (error) {
-    console.error("Error getting car:", error);
+    console.error("Error fetching car:", error);
     return NextResponse.json(
-      { success: false, message: "Failed to get car" },
+      { message: "Internal server error: " + error.message },
       { status: 500 }
     );
   }
@@ -35,7 +38,7 @@ export async function GET(request, { params }) {
 // Update a car
 export async function PUT(request, { params }) {
   try {
-    const { id } = params;
+    const id = (await params).id;
     const session = await getServerSession();
 
     if (!session) {
@@ -163,39 +166,55 @@ export async function PUT(request, { params }) {
 // Delete a car
 export async function DELETE(request, { params }) {
   try {
-    const { id } = params;
-    const session = await getServerSession();
+    const id = (await params).id;
+
+    const session = await getServerSession(authOptions);
 
     if (!session) {
       return NextResponse.json(
-        { success: false, message: "Unauthorized" },
+        { message: "Not authenticated" },
         { status: 401 }
       );
     }
 
+    // Connect to MongoDB
     const client = await clientPromise;
     const db = client.db("driveshare");
 
-    const success = await deleteCar(db, id, session.user.id);
+    // Get the car to check ownership
+    const car = await db.collection("cars").findOne({
+      _id: new ObjectId(id),
+    });
 
-    if (!success) {
+    if (!car) {
+      return NextResponse.json({ message: "Car not found" }, { status: 404 });
+    }
+
+    // Verify the user owns this car
+    if (car.ownerId.toString() !== session.user.id) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "Car not found or not authorized to delete",
-        },
-        { status: 404 }
+        { message: "Unauthorized: You do not own this car" },
+        { status: 403 }
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      message: "Car deleted successfully",
+    // Delete the car
+    const result = await db.collection("cars").deleteOne({
+      _id: new ObjectId(id),
     });
+
+    if (result.deletedCount === 0) {
+      return NextResponse.json(
+        { message: "Failed to delete car" },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ message: "Car deleted successfully" });
   } catch (error) {
     console.error("Error deleting car:", error);
     return NextResponse.json(
-      { success: false, message: "Failed to delete car" },
+      { message: "Internal server error: " + error.message },
       { status: 500 }
     );
   }

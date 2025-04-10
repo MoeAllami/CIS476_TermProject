@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import clientPromise from "@/lib/mongodb/mongodb";
 import { getUserById } from "@/lib/models/user";
 import { getCarsByOwner } from "@/lib/models/car";
-import { authOptions } from "@/lib/auth";
+import { authOptions } from "@/lib/auth/auth";
 
 async function ProfilePage() {
   const session = await getServerSession(authOptions);

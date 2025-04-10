@@ -11,7 +11,7 @@ import { BookingStatus } from "@/lib/models/booking";
 
 export async function GET(request, { params }) {
   try {
-    const { bookingId } = params;
+    const { bookingId } = (await params).bookingId;
     const session = await getSession(request);
     if (!session) {
       return NextResponse.json(
@@ -59,7 +59,7 @@ export async function GET(request, { params }) {
 
 export async function PATCH(request, { params }) {
   try {
-    const { bookingId } = params;
+    const { bookingId } = (await params).bookingId;
     const session = await getSession(request);
     if (!session) {
       return NextResponse.json(

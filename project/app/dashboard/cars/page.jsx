@@ -4,33 +4,44 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 function CarDashboardPage() {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [cars, setCars] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const fetchCars = async () => {
-      try {
-        const response = await fetch("/api/cars");
-        const data = await response.json();
+    // Check if user is authenticated
+    if (status === "unauthenticated") {
+      router.push("/auth/signin?callbackUrl=/dashboard/cars");
+      return;
+    }
 
-        if (!response.ok) {
-          throw new Error(data.message || "Failed to fetch cars");
+    // Only fetch cars if user is authenticated
+    if (status === "authenticated") {
+      const fetchCars = async () => {
+        try {
+          const response = await fetch("/api/cars/my-cars");
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.message || "Failed to fetch cars");
+          }
+
+          setCars(data.cars || []);
+        } catch (err) {
+          setError(err.message);
+        } finally {
+          setIsLoading(false);
         }
+      };
 
-        setCars(data.cars || []);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchCars();
-  }, []);
+      fetchCars();
+    }
+  }, [status, router]);
 
   const handleDelete = async (carId) => {
     if (!confirm("Are you sure you want to delete this car?")) {
@@ -92,7 +103,7 @@ function CarDashboardPage() {
     }
   };
 
-  if (isLoading) {
+  if (status === "loading" || isLoading) {
     return (
       <div className="max-w-7xl mx-auto py-8 px-4">
         <h1 className="text-3xl font-bold mb-6">My Cars</h1>
@@ -177,9 +188,9 @@ function CarDashboardPage() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="h-10 w-10 bg-gray-200 rounded-full flex-shrink-0 mr-4">
-                        {car.images && car.images[0] ? (
+                        {car.photos && car.photos[0] ? (
                           <img
-                            src={car.images[0]}
+                            src={car.photos[0]}
                             alt={`${car.make} ${car.model}`}
                             className="h-10 w-10 rounded-full object-cover"
                           />
@@ -194,33 +205,33 @@ function CarDashboardPage() {
                           {car.make} {car.model}
                         </div>
                         <div className="text-sm text-gray-500">
-                          {car.year} • {car.color}
+                          {car.year} • {car.color || "N/A"}
                         </div>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
-                      {car.location.city}
+                      {car.location?.city || "N/A"}
                     </div>
                     <div className="text-sm text-gray-500">
-                      {car.location.state}
+                      {car.location?.state || ""}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
-                      ${car.pricing.daily}/day
+                      ${car.pricing?.daily || 0}/day
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span
                       className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        car.availability.isAvailable
+                        car.availability?.isAvailable
                           ? "bg-green-100 text-green-800"
                           : "bg-red-100 text-red-800"
                       }`}
                     >
-                      {car.availability.isAvailable
+                      {car.availability?.isAvailable
                         ? "Available"
                         : "Unavailable"}
                     </span>
@@ -230,25 +241,20 @@ function CarDashboardPage() {
                       onClick={() =>
                         handleToggleAvailability(
                           car._id,
-                          car.availability.isAvailable
+                          car.availability?.isAvailable
                         )
                       }
                       className={`px-3 py-1 rounded-md text-sm ${
-                        car.availability.isAvailable
+                        car.availability?.isAvailable
                           ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
                           : "bg-green-100 text-green-800 hover:bg-green-200"
                       }`}
                     >
-                      {car.availability.isAvailable
+                      {car.availability?.isAvailable
                         ? "Set Unavailable"
                         : "Set Available"}
                     </button>
-                    <button
-                      onClick={() => router.push(`/cars/${car._id}/edit`)}
-                      className="px-3 py-1 bg-blue-100 text-blue-800 rounded-md hover:bg-blue-200"
-                    >
-                      Edit
-                    </button>
+
                     <button
                       onClick={() => handleDelete(car._id)}
                       className="px-3 py-1 bg-red-100 text-red-800 rounded-md hover:bg-red-200"
@@ -265,4 +271,5 @@ function CarDashboardPage() {
     </div>
   );
 }
+
 export default CarDashboardPage;

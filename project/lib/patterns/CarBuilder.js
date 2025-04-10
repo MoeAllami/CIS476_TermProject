@@ -1,4 +1,4 @@
-// lib/builders/CarBuilder.js
+// lib/patterns/CarBuilder.js
 import { ObjectId } from "mongodb";
 
 class CarBuilder {

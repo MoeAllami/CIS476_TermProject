@@ -132,14 +132,7 @@ export const updateBookingStatus = async (db, bookingId, status, userId) => {
   }
 
   if (notificationData) {
-    bookingNotificationSubject.notify({
-      userId: car.ownerId,
-      type: "new_booking_request",
-      title: "New Booking Request",
-      message: `You have a new booking request for your ${car.make} ${car.model}`,
-      relatedId: bookingId,
-      isRead: false,
-    });
+    bookingNotificationSubject.notify(notificationData);
   }
 
   return {
