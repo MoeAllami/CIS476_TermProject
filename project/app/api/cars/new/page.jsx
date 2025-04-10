@@ -4,6 +4,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import Navigation from "@/app/components/Navigation";
 
 const carTypes = [
   "Sedan",
@@ -197,335 +198,340 @@ function NewCarPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4">
-      <h1 className="text-3xl font-bold mb-8">Add New Car</h1>
+    <div className="relative z-10 flex h-full">
+      {/* Navigation Component */}
+      <Navigation />
 
-      {error && (
-        <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-6">
-          <p className="text-sm text-red-700">{error}</p>
-        </div>
-      )}
+      <div className="max-w-4xl mx-auto py-8 px-4">
+        <h1 className="text-3xl font-bold mb-8">Add New Car</h1>
 
-      <form onSubmit={handleSubmit} className="space-y-8">
-        {/* Basic Car Information */}
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">Basic Information</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Make
-              </label>
-              <input
-                type="text"
-                name="make"
-                value={formData.make}
-                onChange={handleChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Model
-              </label>
-              <input
-                type="text"
-                name="model"
-                value={formData.model}
-                onChange={handleChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Year
-              </label>
-              <input
-                type="number"
-                name="year"
-                value={formData.year}
-                onChange={handleChange}
-                required
-                min="1900"
-                max={new Date().getFullYear() + 1}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Type
-              </label>
-              <select
-                name="type"
-                value={formData.type}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              >
-                {carTypes.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Color
-              </label>
-              <input
-                type="text"
-                name="color"
-                value={formData.color}
-                onChange={handleChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                License Plate
-              </label>
-              <input
-                type="text"
-                name="licensePlate"
-                value={formData.licensePlate}
-                onChange={handleChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Mileage
-              </label>
-              <input
-                type="number"
-                name="mileage"
-                value={formData.mileage}
-                onChange={handleChange}
-                required
-                min="0"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Daily Rate ($)
-              </label>
-              <input
-                type="number"
-                name="pricePerDay"
-                value={formData.pricePerDay}
-                onChange={handleChange}
-                required
-                min="0"
-                step="0.01"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              />
-            </div>
+        {error && (
+          <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-6">
+            <p className="text-sm text-red-700">{error}</p>
           </div>
-        </div>
+        )}
 
-        {/* Description */}
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">Description</h2>
-          <textarea
-            name="description"
-            value={formData.description}
-            onChange={handleChange}
-            rows="4"
-            required
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            placeholder="Tell renters about your car..."
-          ></textarea>
-        </div>
-
-        {/* Features */}
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">Features</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {featureOptions.map((feature) => (
-              <div key={feature} className="flex items-center">
-                <input
-                  type="checkbox"
-                  id={`feature-${feature}`}
-                  checked={formData.features.includes(feature)}
-                  onChange={() => handleFeatureChange(feature)}
-                  className="h-4 w-4 text-blue-600 border-gray-300 rounded"
-                />
-                <label
-                  htmlFor={`feature-${feature}`}
-                  className="ml-2 text-sm text-gray-700"
-                >
-                  {feature}
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {/* Basic Car Information */}
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h2 className="text-xl font-semibold mb-4">Basic Information</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Make
                 </label>
+                <input
+                  type="text"
+                  name="make"
+                  value={formData.make}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                />
               </div>
-            ))}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Model
+                </label>
+                <input
+                  type="text"
+                  name="model"
+                  value={formData.model}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Year
+                </label>
+                <input
+                  type="number"
+                  name="year"
+                  value={formData.year}
+                  onChange={handleChange}
+                  required
+                  min="1900"
+                  max={new Date().getFullYear() + 1}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Type
+                </label>
+                <select
+                  name="type"
+                  value={formData.type}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                >
+                  {carTypes.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Color
+                </label>
+                <input
+                  type="text"
+                  name="color"
+                  value={formData.color}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  License Plate
+                </label>
+                <input
+                  type="text"
+                  name="licensePlate"
+                  value={formData.licensePlate}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Mileage
+                </label>
+                <input
+                  type="number"
+                  name="mileage"
+                  value={formData.mileage}
+                  onChange={handleChange}
+                  required
+                  min="0"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Daily Rate ($)
+                </label>
+                <input
+                  type="number"
+                  name="pricePerDay"
+                  value={formData.pricePerDay}
+                  onChange={handleChange}
+                  required
+                  min="0"
+                  step="0.01"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                />
+              </div>
+            </div>
           </div>
-        </div>
 
-        {/* Images */}
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">Car Images</h2>
-          <input
-            type="file"
-            multiple
-            accept="image/*"
-            onChange={handleImageUpload}
-            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-          />
-          {formData.photos.length > 0 && (
-            <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-              {formData.photos.map((photo, index) => (
-                <div key={index} className="relative">
-                  <img
-                    src={photo}
-                    alt="Car"
-                    className="h-24 w-full object-cover rounded"
+          {/* Description */}
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h2 className="text-xl font-semibold mb-4">Description</h2>
+            <textarea
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              rows="4"
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              placeholder="Tell renters about your car..."
+            ></textarea>
+          </div>
+
+          {/* Features */}
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h2 className="text-xl font-semibold mb-4">Features</h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {featureOptions.map((feature) => (
+                <div key={feature} className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id={`feature-${feature}`}
+                    checked={formData.features.includes(feature)}
+                    onChange={() => handleFeatureChange(feature)}
+                    className="h-4 w-4 text-blue-600 border-gray-300 rounded"
                   />
-                  <button
-                    type="button"
-                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 text-xs"
-                    onClick={() => {
-                      setFormData((prev) => ({
-                        ...prev,
-                        photos: prev.photos.filter((_, i) => i !== index),
-                      }));
-                    }}
+                  <label
+                    htmlFor={`feature-${feature}`}
+                    className="ml-2 text-sm text-gray-700"
                   >
-                    ✕
-                  </button>
+                    {feature}
+                  </label>
                 </div>
               ))}
             </div>
-          )}
-        </div>
+          </div>
 
-        {/* Location */}
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">Pick-up Location</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Address
-              </label>
-              <input
-                type="text"
-                name="location.address"
-                value={formData.location.address}
-                onChange={handleChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                City
-              </label>
-              <input
-                type="text"
-                name="location.city"
-                value={formData.location.city}
-                onChange={handleChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                State
-              </label>
-              <input
-                type="text"
-                name="location.state"
-                value={formData.location.state}
-                onChange={handleChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Zip Code
-              </label>
-              <input
-                type="text"
-                name="location.zipCode"
-                value={formData.location.zipCode}
-                onChange={handleChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Coordinates (optional)
-              </label>
-              <div className="grid grid-cols-2 gap-4">
+          {/* Images */}
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h2 className="text-xl font-semibold mb-4">Car Images</h2>
+            <input
+              type="file"
+              multiple
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+            />
+            {formData.photos.length > 0 && (
+              <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+                {formData.photos.map((photo, index) => (
+                  <div key={index} className="relative">
+                    <img
+                      src={photo}
+                      alt="Car"
+                      className="h-24 w-full object-cover rounded"
+                    />
+                    <button
+                      type="button"
+                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 text-xs"
+                      onClick={() => {
+                        setFormData((prev) => ({
+                          ...prev,
+                          photos: prev.photos.filter((_, i) => i !== index),
+                        }));
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Location */}
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h2 className="text-xl font-semibold mb-4">Pick-up Location</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Address
+                </label>
                 <input
-                  type="number"
-                  value={formData.location.coordinates[0]}
-                  onChange={(e) => handleCoordinatesChange(e, 0)}
-                  placeholder="Longitude"
-                  step="any"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                />
-                <input
-                  type="number"
-                  value={formData.location.coordinates[1]}
-                  onChange={(e) => handleCoordinatesChange(e, 1)}
-                  placeholder="Latitude"
-                  step="any"
+                  type="text"
+                  name="location.address"
+                  value={formData.location.address}
+                  onChange={handleChange}
+                  required
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  City
+                </label>
+                <input
+                  type="text"
+                  name="location.city"
+                  value={formData.location.city}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  State
+                </label>
+                <input
+                  type="text"
+                  name="location.state"
+                  value={formData.location.state}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Zip Code
+                </label>
+                <input
+                  type="text"
+                  name="location.zipCode"
+                  value={formData.location.zipCode}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Coordinates (optional)
+                </label>
+                <div className="grid grid-cols-2 gap-4">
+                  <input
+                    type="number"
+                    value={formData.location.coordinates[0]}
+                    onChange={(e) => handleCoordinatesChange(e, 0)}
+                    placeholder="Longitude"
+                    step="any"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  />
+                  <input
+                    type="number"
+                    value={formData.location.coordinates[1]}
+                    onChange={(e) => handleCoordinatesChange(e, 1)}
+                    placeholder="Latitude"
+                    step="any"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  />
+                </div>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Availability */}
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">Availability</h2>
-          <div className="flex items-center mb-4">
-            <input
-              type="checkbox"
-              id="defaultAvailable"
-              name="availability.defaultAvailable"
-              checked={formData.availability.defaultAvailable}
-              onChange={handleChange}
-              className="h-4 w-4 text-blue-600 border-gray-300 rounded"
-            />
-            <label
-              htmlFor="defaultAvailable"
-              className="ml-2 text-sm text-gray-700"
-            >
-              Car is available for rent by default
-            </label>
+          {/* Availability */}
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h2 className="text-xl font-semibold mb-4">Availability</h2>
+            <div className="flex items-center mb-4">
+              <input
+                type="checkbox"
+                id="defaultAvailable"
+                name="availability.defaultAvailable"
+                checked={formData.availability.defaultAvailable}
+                onChange={handleChange}
+                className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+              />
+              <label
+                htmlFor="defaultAvailable"
+                className="ml-2 text-sm text-gray-700"
+              >
+                Car is available for rent by default
+              </label>
+            </div>
+            <p className="text-sm text-gray-500 mb-4">
+              You can manage specific availability dates after creating the
+              listing.
+            </p>
           </div>
-          <p className="text-sm text-gray-500 mb-4">
-            You can manage specific availability dates after creating the
-            listing.
-          </p>
-        </div>
 
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={() => router.push("/dashboard/cars")}
-            className="mr-4 px-6 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-          >
-            {isLoading ? "Creating..." : "Create Listing"}
-          </button>
-        </div>
-      </form>
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => router.push("/dashboard/cars")}
+              className="mr-4 px-6 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+            >
+              {isLoading ? "Creating..." : "Create Listing"}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
