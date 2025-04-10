@@ -8,6 +8,7 @@ import CreateBookingForm from "../../components/bookings/CreateBookingForm";
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
 import { useSession } from "next-auth/react";
 import { useParams } from "next/navigation";
+import ContactOwnerButton from "../../components/messaging/ContactOwnerButton";
 
 export default function CarDetailPage() {
   const params = useParams();
@@ -242,6 +243,13 @@ export default function CarDetailPage() {
                       </p>
                     </div>
                   </div>
+
+                  {/* Add Contact Owner Button */}
+                  {!isOwner && session && (
+                    <div className="mt-4">
+                      <ContactOwnerButton ownerId={car.ownerId} carId={id} />
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -306,7 +314,16 @@ export default function CarDetailPage() {
               </div>
             </div>
           ) : (
-            <CreateBookingForm carId={id} pricePerDay={pricePerDay} />
+            <>
+              <CreateBookingForm carId={id} pricePerDay={pricePerDay} />
+
+              {/* Add Contact Owner Button for mobile view */}
+              {!isOwner && session && (
+                <div className="mt-4 lg:hidden">
+                  <ContactOwnerButton ownerId={car.ownerId} carId={id} />
+                </div>
+              )}
+            </>
           )}
 
           <div className="mt-6 bg-white rounded-lg shadow-md p-6">
@@ -334,6 +351,18 @@ export default function CarDetailPage() {
               </div>
             )}
           </div>
+
+          {/* Add messaging section for non-owners */}
+          {!isOwner && session && (
+            <div className="mt-6 bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-semibold mb-4">Have Questions?</h2>
+              <p className="text-gray-600 mb-4">
+                Contact the owner directly to ask about this car or discuss
+                rental details.
+              </p>
+              <ContactOwnerButton ownerId={car.ownerId} carId={id} />
+            </div>
+          )}
         </div>
       </div>
     </div>

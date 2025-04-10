@@ -9,7 +9,7 @@ import { FaSearch, FaMapMarkerAlt, FaCalendarAlt } from "react-icons/fa";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
-export default function HomeSearch() {
+export default function BookingSearch() {
   const router = useRouter();
   const [location, setLocation] = useState("");
   const [startDate, setStartDate] = useState(null);
@@ -36,6 +36,7 @@ export default function HomeSearch() {
     searchParams.set("startDate", startDate.toISOString());
     searchParams.set("endDate", endDate.toISOString());
 
+    // Redirect to the available cars page with search parameters
     router.push(`/dashboard/cars?${searchParams.toString()}`);
   };
 
@@ -131,10 +132,10 @@ export default function HomeSearch() {
         <button
           type="submit"
           className="m-3 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition flex items-center justify-center"
-          aria-label="Search for cars"
+          aria-label="Search for available cars"
         >
           <FaSearch className="mr-2" />
-          <span>Search</span>
+          <span>Find Cars</span>
         </button>
       </form>
 

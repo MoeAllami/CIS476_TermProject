@@ -45,14 +45,29 @@ export default function Navigation() {
     },
     {
       href: "/dashboard/cars",
-      label: "Browse Cars",
+      label: "Browse Your Cars",
+    },
+
+    {
+      href: "/dashboard/profile",
+      label: "Profile",
+    },
+
+    {
+      href: "/bookings",
+      label: "Browse Bookings",
+    },
+
+    {
+      href: "/messages",
+      label: "Messages",
     },
   ];
 
   const authItems = isLoggedIn
     ? [
         {
-          href: "/dashboard/bookings",
+          href: "/bookings",
           label: "My Bookings",
         },
         {

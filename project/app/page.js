@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import Navigation from "./components/Navigation";
@@ -58,13 +57,14 @@ export default function Home() {
                   href="/dashboard/cars"
                   className="bg-gray-800 text-white hover:bg-gray-700 transition py-3 px-8 rounded-full font-semibold text-lg"
                 >
-                  Browse Cars
+                  Browse your Cars
                 </Link>
+
                 <Link
-                  href="/auth/signup"
-                  className="bg-blue-600 text-white hover:bg-blue-700 transition py-3 px-8 rounded-full font-semibold text-lg"
+                  href="/bookings"
+                  className="bg-gray-800 text-white hover:bg-gray-700 transition py-3 px-8 rounded-full font-semibold text-lg"
                 >
-                  Sign Up Now
+                  Browse Bookings
                 </Link>
               </div>
             </motion.div>
