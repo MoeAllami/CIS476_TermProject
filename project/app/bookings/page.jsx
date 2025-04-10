@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import BookingList from "../components/bookings/BookingList";
 import BookingFilter from "../components/bookings/BookingFilter";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
+import Navigation from "../components/Navigation";
 
 export default function BookingsPage() {
   const [bookings, setBookings] = useState([]);
@@ -80,57 +81,63 @@ export default function BookingsPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">My Bookings</h1>
+    <div className="relative z-10 flex h-full">
+      {/* Navigation Component */}
+      <Navigation />
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold mb-6">My Bookings</h1>
 
-      <BookingFilter
-        currentStatus={status}
-        onStatusChange={handleStatusChange}
-      />
+        <BookingFilter
+          currentStatus={status}
+          onStatusChange={handleStatusChange}
+        />
 
-      {bookings.length > 0 ? (
-        <>
-          <BookingList bookings={bookings} />
+        {bookings.length > 0 ? (
+          <>
+            <BookingList bookings={bookings} />
 
-          <div className="mt-8 flex justify-center">
-            <nav className="flex items-center gap-2">
-              <button
-                onClick={() => handlePageChange(pagination.page - 1)}
-                disabled={pagination.page === 1}
-                className="px-3 py-1 border rounded disabled:opacity-50"
-              >
-                Previous
-              </button>
+            <div className="mt-8 flex justify-center">
+              <nav className="flex items-center gap-2">
+                <button
+                  onClick={() => handlePageChange(pagination.page - 1)}
+                  disabled={pagination.page === 1}
+                  className="px-3 py-1 border rounded disabled:opacity-50"
+                >
+                  Previous
+                </button>
 
-              <span className="px-4 py-1">
-                Page {pagination.page} of{" "}
-                {Math.ceil(pagination.total / pagination.limit) || 1}
-              </span>
+                <span className="px-4 py-1">
+                  Page {pagination.page} of{" "}
+                  {Math.ceil(pagination.total / pagination.limit) || 1}
+                </span>
 
-              <button
-                onClick={() => handlePageChange(pagination.page + 1)}
-                disabled={
-                  pagination.page >=
-                  Math.ceil(pagination.total / pagination.limit)
-                }
-                className="px-3 py-1 border rounded disabled:opacity-50"
-              >
-                Next
-              </button>
-            </nav>
+                <button
+                  onClick={() => handlePageChange(pagination.page + 1)}
+                  disabled={
+                    pagination.page >=
+                    Math.ceil(pagination.total / pagination.limit)
+                  }
+                  className="px-3 py-1 border rounded disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </nav>
+            </div>
+          </>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-gray-500 mb-4">
+              You don't have any bookings yet.
+            </p>
+            <button
+              onClick={() => router.push("/cars")}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            >
+              Find Cars to Rent
+            </button>
           </div>
-        </>
-      ) : (
-        <div className="text-center py-12">
-          <p className="text-gray-500 mb-4">You don't have any bookings yet.</p>
-          <button
-            onClick={() => router.push("/cars")}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-          >
-            Find Cars to Rent
-          </button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
