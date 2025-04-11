@@ -13,6 +13,8 @@ export async function POST(request) {
   try {
     // Get user from session
     const session = await getSession(request);
+    console.log("Creating booking - Session user:", session.user);
+
     if (!session) {
       return NextResponse.json(
         { success: false, message: "Unauthorized" },
@@ -53,10 +55,10 @@ export async function POST(request) {
       );
     }
 
-    // Create the booking
+    // Create the booking - USE SESSION USER ID HERE
     const { bookingId, totalPrice } = await createBooking(db, {
       carId: new ObjectId(carId),
-      renterId: new ObjectId(session.userId),
+      renterId: new ObjectId(session.user.id), // Use the current user's ID
       startDate: new Date(startDate),
       endDate: new Date(endDate),
     });
@@ -83,12 +85,28 @@ export async function POST(request) {
 export async function GET(request) {
   try {
     const session = await getSession(request);
+    console.log("GET bookings - Session object:", session);
+
     if (!session) {
+      console.log("No session found - unauthorized");
       return NextResponse.json(
         { success: false, message: "Unauthorized" },
         { status: 401 }
       );
     }
+
+    // Make sure we have a userId property
+    const userId = session.userId || session.user?.id;
+
+    if (!userId) {
+      console.log("No user ID in session - unauthorized");
+      return NextResponse.json(
+        { success: false, message: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    console.log("GET bookings for user:", userId);
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
@@ -100,10 +118,24 @@ export async function GET(request) {
 
     const { bookings, total } = await getUserBookings(
       db,
-      session.userId,
+      userId,
       status,
       limit,
       skip
+    );
+
+    console.log(`Returning ${bookings.length} bookings for user ${userId}`);
+    console.log(
+      "SENDING BOOKINGS:",
+      JSON.stringify(
+        bookings.map((b) => ({
+          id: b._id,
+          status: b.status,
+          totalPrice: b.totalPrice,
+        })),
+        null,
+        2
+      )
     );
 
     return NextResponse.json({

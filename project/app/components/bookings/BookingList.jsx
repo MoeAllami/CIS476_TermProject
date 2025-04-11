@@ -7,6 +7,14 @@ import { BookingStatus } from "@/lib/models/booking";
 import { formatDate } from "@/lib/utils/dateUtils";
 
 export default function BookingList({ bookings }) {
+  console.log(
+    "Booking data received:",
+    bookings.map((b) => ({
+      id: b._id,
+      status: b.status,
+      car: b.car,
+    }))
+  );
   const [expandedBooking, setExpandedBooking] = useState(null);
 
   const getStatusBadgeClass = (status) => {
@@ -55,11 +63,13 @@ export default function BookingList({ bookings }) {
             <div className="flex items-center gap-4">
               <span
                 className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeClass(
-                  booking.status
+                  booking.status || ""
                 )}`}
               >
-                {booking.status.charAt(0).toUpperCase() +
-                  booking.status.slice(1)}
+                {booking.status
+                  ? booking.status.charAt(0).toUpperCase() +
+                    booking.status.slice(1)
+                  : "Unknown"}
               </span>
 
               <span className="font-medium">${booking.totalPrice}</span>

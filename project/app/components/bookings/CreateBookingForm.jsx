@@ -1,7 +1,7 @@
 // components/bookings/CreateBookingForm.jsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import DatePicker from "react-datepicker";
@@ -13,6 +13,8 @@ export default function CreateBookingForm({ carId, pricePerDay }) {
   const [loading, setLoading] = useState(false);
   const [paymentProcessing, setPaymentProcessing] = useState(false);
   const [error, setError] = useState(null);
+  const [existingBookingId, setExistingBookingId] = useState(null);
+  const [existingBookingData, setExistingBookingData] = useState(null);
   const router = useRouter();
   const { data: session, status } = useSession();
 
@@ -26,6 +28,40 @@ export default function CreateBookingForm({ carId, pricePerDay }) {
 
   const totalDays = calculateTotalDays();
   const totalPrice = totalDays * pricePerDay;
+
+  // Check for existing pending bookings for this car when component mounts
+  useEffect(() => {
+    if (session && carId) {
+      checkForExistingBooking();
+    }
+  }, [session, carId]);
+
+  const checkForExistingBooking = async () => {
+    try {
+      const response = await fetch(`/api/bookings?status=PENDING`);
+      if (response.ok) {
+        const data = await response.json();
+        // Find a pending booking for this car
+        const pendingBooking = data.data.bookings.find(
+          (booking) => booking.carId === carId
+        );
+
+        if (pendingBooking) {
+          console.log("Found existing pending booking:", pendingBooking);
+          setExistingBookingId(pendingBooking._id);
+          setExistingBookingData(pendingBooking);
+
+          // Set dates from existing booking
+          if (pendingBooking.startDate && pendingBooking.endDate) {
+            setStartDate(new Date(pendingBooking.startDate));
+            setEndDate(new Date(pendingBooking.endDate));
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Error checking for existing bookings:", err);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -47,27 +83,53 @@ export default function CreateBookingForm({ carId, pricePerDay }) {
       setLoading(true);
       setError(null);
 
-      // Create booking
-      const bookingResponse = await fetch("/api/bookings", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          carId,
-          startDate: startDate.toISOString(),
-          endDate: endDate.toISOString(),
-        }),
-      });
+      let bookingId = existingBookingId;
+      let bookingTotalPrice = existingBookingData?.totalPrice || totalPrice;
 
-      const bookingData = await bookingResponse.json();
+      // Only create a new booking if we don't have an existing one
+      if (!existingBookingId) {
+        console.log("Creating new booking for user:", session.user.id);
 
-      if (!bookingData.success) {
-        throw new Error(bookingData.message || "Failed to create booking");
+        // Create booking
+        const bookingResponse = await fetch("/api/bookings", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            carId,
+            startDate: startDate.toISOString(),
+            endDate: endDate.toISOString(),
+          }),
+        });
+
+        const bookingData = await bookingResponse.json();
+        console.log("Booking response:", bookingData);
+
+        if (!bookingData.success) {
+          throw new Error(bookingData.message || "Failed to create booking");
+        }
+
+        bookingId = bookingData.data.bookingId;
+        bookingTotalPrice = bookingData.data.totalPrice;
+
+        // If totalPrice is not returned from API, calculate it locally
+        if (!bookingTotalPrice) {
+          bookingTotalPrice = totalPrice;
+        }
       }
 
-      // Process payment immediately
+      // Process payment - Make sure we have both ID and amount
+      if (!bookingId || !bookingTotalPrice) {
+        throw new Error("Missing booking details for payment");
+      }
+
       setPaymentProcessing(true);
+      console.log("Sending payment request:", {
+        bookingId,
+        amount: bookingTotalPrice,
+        user: session.user.id,
+      });
 
       const paymentResponse = await fetch("/api/payments", {
         method: "POST",
@@ -75,14 +137,28 @@ export default function CreateBookingForm({ carId, pricePerDay }) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          bookingId: bookingData.data.bookingId,
-          amount: bookingData.data.totalPrice,
+          bookingId: bookingId,
+          amount: bookingTotalPrice,
         }),
       });
 
       const paymentData = await paymentResponse.json();
+      console.log("Payment response:", paymentData);
 
       if (!paymentData.success) {
+        // Save the bookingId for retry
+        if (!existingBookingId) {
+          setExistingBookingId(bookingId);
+
+          // Get the booking details to store totalPrice
+          const bookingDetailsResponse = await fetch(
+            `/api/bookings/${bookingId}`
+          );
+          if (bookingDetailsResponse.ok) {
+            const bookingDetails = await bookingDetailsResponse.json();
+            setExistingBookingData(bookingDetails.data);
+          }
+        }
         throw new Error(paymentData.message || "Payment failed");
       }
 
@@ -92,6 +168,7 @@ export default function CreateBookingForm({ carId, pricePerDay }) {
       // Redirect to bookings page
       router.push("/bookings");
     } catch (err) {
+      console.error("Error in booking process:", err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -106,6 +183,15 @@ export default function CreateBookingForm({ carId, pricePerDay }) {
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <h2 className="text-xl font-semibold mb-4">Book This Car</h2>
+
+      {existingBookingId && (
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+          <p className="text-blue-700 text-sm">
+            You have a pending booking for this car. Complete your payment to
+            confirm.
+          </p>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit}>
         {!session && (
@@ -141,6 +227,7 @@ export default function CreateBookingForm({ carId, pricePerDay }) {
             className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholderText="Select pickup date"
             required
+            disabled={!!existingBookingId}
           />
         </div>
 
@@ -157,6 +244,7 @@ export default function CreateBookingForm({ carId, pricePerDay }) {
             className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholderText="Select return date"
             required
+            disabled={!!existingBookingId}
           />
         </div>
 
@@ -171,12 +259,18 @@ export default function CreateBookingForm({ carId, pricePerDay }) {
             </div>
             <div className="flex justify-between py-1 font-bold border-t mt-2 pt-2">
               <span>Total</span>
-              <span>${totalPrice.toFixed(2)}</span>
+              <span>
+                ${(existingBookingData?.totalPrice || totalPrice).toFixed(2)}
+              </span>
             </div>
           </div>
         )}
 
-        {error && <p className="text-red-500 mb-4">{error}</p>}
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+            <p className="text-red-700 text-sm">{error}</p>
+          </div>
+        )}
 
         <button
           type="submit"
@@ -191,6 +285,10 @@ export default function CreateBookingForm({ carId, pricePerDay }) {
             ? "Creating Booking..."
             : paymentProcessing
             ? "Processing Payment..."
+            : existingBookingId
+            ? `Complete Payment $${(
+                existingBookingData?.totalPrice || totalPrice
+              ).toFixed(2)}`
             : `Book & Pay $${totalPrice.toFixed(2)}`}
         </button>
       </form>

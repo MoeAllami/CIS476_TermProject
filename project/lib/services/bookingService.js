@@ -6,28 +6,70 @@ import { getUserById } from "../models/user";
 import { createNotification } from "./notificationService";
 import bookingNotificationSubject from "../patterns/observer";
 
+const calculateBookingPrice = (car, startDate, endDate) => {
+  // Calculate the number of days
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const diffTime = Math.abs(end - start);
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  // Get base price per day
+  const pricePerDay = car.pricing?.daily || car.pricePerDay;
+
+  // Apply weekly or monthly rates if applicable
+  if (car.pricing && car.pricing.monthly && diffDays >= 30) {
+    // Monthly rate
+    const months = Math.floor(diffDays / 30);
+    const remainingDays = diffDays % 30;
+    return months * car.pricing.monthly + remainingDays * pricePerDay;
+  } else if (car.pricing && car.pricing.weekly && diffDays >= 7) {
+    // Weekly rate
+    const weeks = Math.floor(diffDays / 7);
+    const remainingDays = diffDays % 7;
+    return weeks * car.pricing.weekly + remainingDays * pricePerDay;
+  } else {
+    // Daily rate
+    return diffDays * pricePerDay;
+  }
+};
+
 export const createBooking = async (db, bookingData) => {
   // Get the car details to calculate price and get owner
-  const car = await getCarById(db, bookingData.carId);
+  console.log("Creating booking with data:", bookingData);
+
+  // Check if the car exists
+  const car = await db.collection("cars").findOne({
+    _id: new ObjectId(bookingData.carId.toString()),
+  });
+
   if (!car) {
     throw new Error("Car not found");
   }
 
-  // Calculate total price based on days and car price
-  const startDate = new Date(bookingData.startDate);
-  const endDate = new Date(bookingData.endDate);
-  const daysCount = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
-  const totalPrice = daysCount * car.pricePerDay;
-
-  // Create booking object
+  // Prepare booking data
   const booking = {
-    ...bookingData,
-    ownerId: car.ownerId,
-    totalPrice,
+    carId: new ObjectId(bookingData.carId.toString()),
+    renterId: new ObjectId(bookingData.renterId.toString()),
+    ownerId: new ObjectId(car.ownerId.toString()),
+    startDate: new Date(bookingData.startDate),
+    endDate: new Date(bookingData.endDate),
+    totalPrice: calculateBookingPrice(
+      car,
+      bookingData.startDate,
+      bookingData.endDate
+    ),
     status: BookingStatus.PENDING,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
+
+  console.log("Creating booking with:");
+  console.log("- renterId:", bookingData.renterId.toString());
+  console.log("- car ownerId (raw):", car.ownerId);
+  console.log(
+    "- car ownerId (as ObjectId):",
+    new ObjectId(car.ownerId.toString())
+  );
 
   const result = await db.collection(BookingCollection).insertOne(booking);
   const bookingId = result.insertedId;
@@ -41,10 +83,10 @@ export const createBooking = async (db, bookingData) => {
     relatedId: bookingId,
     isRead: false,
   });
-
+  console.log("Inserting booking with renterId:", booking.renterId);
   return {
-    bookingId,
-    totalPrice,
+    bookingId: result.insertedId,
+    totalPrice: booking.totalPrice,
   };
 };
 
@@ -151,29 +193,58 @@ export const getUserBookings = async (
   db,
   userId,
   status,
-  limit = 20,
+  limit = 10,
   skip = 0
 ) => {
+  console.log("Getting bookings for user:", userId, "with status:", status);
+
+  // Create the query - look for bookings where user is either the renter or owner
+  const userObjectId = new ObjectId(userId.toString());
+
+  // Create the query - look for bookings where user is either the renter or owner
   const query = {
-    $or: [
-      { renterId: new ObjectId(userId) },
-      { ownerId: new ObjectId(userId) },
-    ],
+    $or: [{ renterId: userObjectId }, { ownerId: userObjectId }],
   };
 
+  // Add status filter if provided
   if (status) {
     query.status = status;
   }
 
+  console.log("Bookings query:", JSON.stringify(query));
+
+  // Get the bookings
   const bookings = await db
-    .collection(BookingCollection)
+    .collection("bookings")
     .find(query)
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit)
     .toArray();
 
-  const total = await db.collection(BookingCollection).countDocuments(query);
+  console.log(`Found ${bookings.length} bookings`);
 
-  return { bookings, total };
+  // For each booking, get the car details and add them to the booking
+  const bookingsWithCars = await Promise.all(
+    bookings.map(async (booking) => {
+      try {
+        const car = await db.collection("cars").findOne({
+          _id: booking.carId,
+        });
+
+        return {
+          ...booking,
+          car: car || { make: "Unknown", model: "Unknown" },
+        };
+      } catch (err) {
+        console.error("Error getting car for booking:", err);
+        return booking;
+      }
+    })
+  );
+
+  // Get total count for pagination
+  const total = await db.collection("bookings").countDocuments(query);
+
+  return { bookings: bookingsWithCars, total };
 };

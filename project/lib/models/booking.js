@@ -6,6 +6,7 @@ export const BookingStatus = {
   CONFIRMED: "confirmed",
   CANCELED: "canceled",
   COMPLETED: "completed",
+  PAID: "paid",
 };
 
 export const BookingSchema = {

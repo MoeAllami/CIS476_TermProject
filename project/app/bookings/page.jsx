@@ -34,6 +34,16 @@ export default function BookingsPage() {
         }).toString();
 
         const response = await fetch(`/api/bookings?${queryParams}`);
+
+        // Handle 401 unauthorized - redirect to login
+        if (response.status === 401) {
+          console.log("User not authenticated, redirecting to login");
+          router.push(
+            "/auth/signin?callbackUrl=" + encodeURIComponent("/bookings")
+          );
+          return;
+        }
+
         const data = await response.json();
 
         if (!data.success) {
@@ -53,7 +63,7 @@ export default function BookingsPage() {
     };
 
     fetchBookings();
-  }, [status, pagination.page, pagination.limit]);
+  }, [status, pagination.page, pagination.limit, router]);
 
   const handleStatusChange = (newStatus) => {
     const params = new URLSearchParams(searchParams);

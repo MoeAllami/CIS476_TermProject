@@ -11,7 +11,9 @@ import { BookingStatus } from "@/lib/models/booking";
 
 export async function GET(request, { params }) {
   try {
-    const { bookingId } = (await params).bookingId;
+    const bookingId = params.bookingId;
+    console.log("GET booking details for ID:", bookingId);
+
     const session = await getSession(request);
     if (!session) {
       return NextResponse.json(
@@ -23,23 +25,20 @@ export async function GET(request, { params }) {
     const client = await clientPromise;
     const db = client.db("driveshare");
 
-    const booking = await getBookingById(db, bookingId);
+    // Make sure we're querying with a proper ObjectId
+    const booking = await db.collection("bookings").findOne({
+      _id: new ObjectId(bookingId),
+    });
 
     if (!booking) {
+      console.log("Booking not found:", bookingId);
       return NextResponse.json(
         { success: false, message: "Booking not found" },
         { status: 404 }
       );
     }
 
-    // Check if the user is either the renter or owner
-    const userId = new ObjectId(session.userId);
-    if (!booking.renterId.equals(userId) && !booking.ownerId.equals(userId)) {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized to access this booking" },
-        { status: 403 }
-      );
-    }
+    console.log("Found booking:", booking._id);
 
     return NextResponse.json({
       success: true,
